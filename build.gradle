@@ -1,0 +1,32 @@
+plugins {
+    id 'java'
+    id 'org.jetbrains.kotlin.jvm' version '1.3.41'
+}
+
+group 'com.hexagon.doctest'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    implementation('com.google.guava:guava:28.0-jre')
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.5.1")
+    testImplementation('org.junit.jupiter:junit-jupiter-params:5.5.1')
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.5.1")
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+test {
+    useJUnitPlatform()
+}
