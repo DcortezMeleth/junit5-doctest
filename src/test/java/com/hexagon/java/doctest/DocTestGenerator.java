@@ -54,7 +54,7 @@ class DocTestGenerator {
                                 for (MethodDeclaration method : n.getMethods()) {
                                     if (method.getComment().isPresent() && method.getComment().get().isJavadocComment()) {
                                         Stream<DynamicTest> testCases =
-                                                handleJavaDoc(method.getComment().map(JavadocComment.class::cast).get());
+                                                handleJavaDoc(n, method.getComment().map(JavadocComment.class::cast).get());
                                         allTestCases.add(testCases);
                                     }
                                 }
@@ -69,7 +69,7 @@ class DocTestGenerator {
         return allTestCases.stream().flatMap(Function.identity());
     }
 
-    private Stream<DynamicTest> handleJavaDoc(JavadocComment javadocComment) {
+    private Stream<DynamicTest> handleJavaDoc(ClassOrInterfaceDeclaration n, JavadocComment javadocComment) {
         String content = javadocComment.getContent();
         String tagContent = content.substring(content.indexOf(DOCTEST_TAG));
         String[] lines = tagContent.split("\n");
@@ -82,6 +82,8 @@ class DocTestGenerator {
                 .map(String::strip)
                 //usuwamy puste linie
                 .filter(s -> !s.isBlank())
+                //zmianiamy nazwe tak by zawierala pakietowanie, wymaga tego jshell
+                .map(s -> s.replaceAll(n.getName().asString(), n.getFullyQualifiedName().get()))
                 //tworzymy wlasciwy test
                 .map(this::createTestFromText);
     }

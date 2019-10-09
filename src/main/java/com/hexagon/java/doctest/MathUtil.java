@@ -10,8 +10,8 @@ public abstract class MathUtil {
      *
      * @doctest
      * MathUtil.add(1,2) == 3
-     * com.hexagon.java.doctest.MathUtil.add(3,2) == 5
-     * com.hexagon.java.doctest.MathUtil.add(3,2) == 6
+     * MathUtil.add(3,2) == 5
+     * MathUtil.add(3,2) == 6
      */
     public static int add(int a, int b) {
         return a + b;
