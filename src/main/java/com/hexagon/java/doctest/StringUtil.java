@@ -9,10 +9,10 @@ public abstract class StringUtil {
      * Adds cool text
      *
      * @doctest
-     * StringUtil.addCoolText("Random text") == "Random text.coolText"
+     * StringUtil.addCoolText("Random text").equals("Random text.coolText")
      * StringUtil.addCoolText("blabla") == "blabla.coolText"
      */
-    String addCoolText(final String text) {
+    public static String addCoolText(final String text) {
         return text + ".coolText";
     }
 }
