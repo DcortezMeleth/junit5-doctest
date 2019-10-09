@@ -88,6 +88,8 @@ class DocTestGenerator {
                 .filter(s -> !s.isBlank())
                 //zmianiamy nazwe tak by zawierala pakietowanie, wymaga tego jshell
                 .map(s -> s.replaceAll(clazz.getNameAsString(), clazz.getFullyQualifiedName().get()))
+                //dla wiekszej czytelnosci pozwalamy pisac == zamiast equals
+                .map(s -> s.contains("==") && !method.getType().isPrimitiveType() ? s.replace("==", ".equals(") + ")" : s)
                 //tworzymy wlasciwy test
                 .map(s -> createTestFromText(clazz, s));
 
