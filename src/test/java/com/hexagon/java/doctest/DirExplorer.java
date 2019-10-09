@@ -2,22 +2,27 @@ package com.hexagon.java.doctest;
 
 import java.io.File;
 
-public class DirExplorer {
+class DirExplorer {
+
+    private FileHandler fileHandler;
+    private Filter filter;
     public interface FileHandler {
         void handle(int level, String path, File file);
     }
+
     public interface Filter {
         boolean interested(int level, String path, File file);
     }
-    private FileHandler fileHandler;
-    private Filter filter;
-    public DirExplorer(Filter filter, FileHandler fileHandler) {
+
+    DirExplorer(Filter filter, FileHandler fileHandler) {
         this.filter = filter;
         this.fileHandler = fileHandler;
     }
-    public void explore(File root) {
+
+    void explore(File root) {
         explore(0, "", root);
     }
+
     private void explore(int level, String path, File file) {
         if (file.isDirectory()) {
             for (File child : file.listFiles()) {

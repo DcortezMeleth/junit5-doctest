@@ -11,28 +11,28 @@ import jdk.jshell.JShell;
 import jdk.jshell.Snippet;
 import jdk.jshell.SnippetEvent;
 import jdk.jshell.execution.LocalExecutionControlProvider;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DynamicTest;
-import org.junit.jupiter.api.TestFactory;
+import org.junit.jupiter.api.*;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
+@DisplayName("DocTest tests")
 class DocTestGenerator {
 
     private
     static final String DOCTEST_TAG = "@doctest";
 
     @TestFactory
-    Stream<DynamicTest> generate() {
+    @DisplayName("Java sources")
+    Collection<DynamicContainer> generate() {
         File sourcesDir = new File("src/main/java");
 
-        List<Stream<DynamicTest>> allTestCases = new ArrayList<>();
+        List<DynamicContainer> allTestCases = new ArrayList<>();
 
         new DirExplorer((
                 (level, path, file) -> path.endsWith(".java")),
@@ -51,13 +51,16 @@ class DocTestGenerator {
                             public void visit(ClassOrInterfaceDeclaration n, Object arg) {
                                 super.visit(n, arg);
 
+                                List<DynamicContainer> methodTests = new ArrayList<>();
+
                                 for (MethodDeclaration method : n.getMethods()) {
                                     if (method.getComment().isPresent() && method.getComment().get().isJavadocComment()) {
-                                        Stream<DynamicTest> testCases =
-                                                handleJavaDoc(n, method.getComment().map(JavadocComment.class::cast).get());
-                                        allTestCases.add(testCases);
+                                        DynamicContainer testCases = getMethodTests(n, method);
+                                        methodTests.add(testCases);
                                     }
                                 }
+
+                                allTestCases.add(DynamicContainer.dynamicContainer(n.getNameAsString(), methodTests));
                             }
                         }.visit(declaration, null));
                     } catch (IOException e) {
@@ -66,14 +69,15 @@ class DocTestGenerator {
                 }
         ).explore(sourcesDir);
 
-        return allTestCases.stream().flatMap(Function.identity());
+        return allTestCases;
     }
 
-    private Stream<DynamicTest> handleJavaDoc(ClassOrInterfaceDeclaration n, JavadocComment javadocComment) {
+    private DynamicContainer getMethodTests(ClassOrInterfaceDeclaration clazz, MethodDeclaration method) {
+        JavadocComment javadocComment = method.getComment().map(JavadocComment.class::cast).get();
         String content = javadocComment.getContent();
         String tagContent = content.substring(content.indexOf(DOCTEST_TAG));
         String[] lines = tagContent.split("\n");
-        return Stream.of(lines)
+        Stream<DynamicTest> tests = Stream.of(lines)
                 //pierwszy wiersz to sam tag wiec go nie potrzebujemy
                 .skip(1)
                 //usuwamy * ktora zaczyna kazda linie java doc
@@ -83,19 +87,25 @@ class DocTestGenerator {
                 //usuwamy puste linie
                 .filter(s -> !s.isBlank())
                 //zmianiamy nazwe tak by zawierala pakietowanie, wymaga tego jshell
-                .map(s -> s.replaceAll(n.getName().asString(), n.getFullyQualifiedName().get()))
+                .map(s -> s.replaceAll(clazz.getNameAsString(), clazz.getFullyQualifiedName().get()))
                 //tworzymy wlasciwy test
-                .map(this::createTestFromText);
+                .map(s -> createTestFromText(clazz, s));
+
+        return DynamicContainer.dynamicContainer(method.getNameAsString(), tests);
     }
 
-    private DynamicTest createTestFromText(final String line) {
-        return DynamicTest.dynamicTest(line, () -> {
+    private DynamicTest createTestFromText(ClassOrInterfaceDeclaration clazz, final String line) {
+        return DynamicTest.dynamicTest(line.replace(clazz.getFullyQualifiedName().orElse(""), clazz.getNameAsString()), () -> {
+            //create jshell instance
             JShell shell =
                     JShell.builder()
                             .executionEngine(new LocalExecutionControlProvider(), null)
                             .build();
+
+            //execute code snippet
             List<SnippetEvent> result = shell.eval(line);
-            System.out.println(line);
+
+            System.out.println("Executed code: " + line);
             Assertions.assertFalse(result.isEmpty());
             SnippetEvent event = result.get(0);
             Assertions.assertEquals(Snippet.Status.VALID, event.status());
